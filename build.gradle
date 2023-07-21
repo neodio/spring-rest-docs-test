@@ -1,0 +1,76 @@
+plugins {
+    id 'org.springframework.boot' version '2.7.0'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+
+    /* add */
+    id "org.asciidoctor.jvm.convert" version "3.3.2" // gradle 7.x 이상 jvm 사용
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+
+    /* add */
+    asciidoctorExt // org.springframework.restdocs:spring-restdocs-asciidoctor
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    /* add */
+    asciidoctorExt 'org.springframework.restdocs:spring-restdocs-asciidoctor' // asciidoctor
+
+    /* add */
+    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc' // mockmvc
+}
+
+/* add */
+ext {
+    snippetsDir = file('build/generated-snippets') // *.adoc 파일 출력 경로 변수 선언
+}
+
+test {
+    useJUnitPlatform()
+
+    /* add */
+    outputs.dir snippetsDir // snippetsDir 변수에 해당하는 경로로 *.adoc 출력
+}
+
+/* add */
+asciidoctor { // asciidoctor 작업 구성
+    inputs.dir snippetsDir // snippetsDir 변수에 해당하는 경로를 input으로 활용
+    configurations 'asciidoctorExt' // 위에서 작성한 configuration 적용
+    dependsOn test // test 작업 이후에 작동하도록 하는 설정
+}
+
+/* add */
+asciidoctor.doFirst { // asciidoctor 작업 전 실행
+    delete file('src/main/resources/static/docs') // static/docs 폴더 비우기
+}
+
+/* add */
+task copyDocs(type: Copy) { // asccidoctor 작업 이후 생성된 HTML 파일을 복사
+    from file("build/docs/asciidoc")
+    into file("src/main/resources/static/docs")
+    dependsOn asciidoctor // asciidoctor 작업 이후에 작동하도록 하는 설정
+}
+
+/* add */
+build {
+    dependsOn copyDocs // copyDocs 작업 이후에 작동하도록 하는 설정
+}
